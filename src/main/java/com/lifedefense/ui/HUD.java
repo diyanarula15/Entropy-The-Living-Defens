@@ -47,19 +47,21 @@ public class HUD {
         shapeRenderer.setColor(Color.RED);
         shapeRenderer.rect(padding, screenHeight - padding - barHeight, barWidth * healthPercent, barHeight);
 
-        // Heat Bar (Top Left, below Health)
-        float heatY = screenHeight - padding - barHeight - padding - barHeight;
-        shapeRenderer.setColor(Color.DARK_GRAY);
-        shapeRenderer.rect(padding, heatY, barWidth, barHeight);
+        // Entropy Bar (Top Right) - Renamed from Heat
+        float entropyBarX = screenWidth - padding - barWidth;
+        float entropyBarY = screenHeight - padding - barHeight;
         
-        // Heat Foreground
-        float heatPercent = Math.min(1, gameState.getHeatLevel() / gameState.getMaxHeatLevel());
+        shapeRenderer.setColor(Color.DARK_GRAY);
+        shapeRenderer.rect(entropyBarX, entropyBarY, barWidth, barHeight);
+        
+        // Entropy Foreground
+        float entropyPercent = Math.min(1, gameState.getHeatLevel() / gameState.getMaxHeatLevel());
         if (gameState.isOverheated()) {
             shapeRenderer.setColor(Color.RED); // Flash red if overheated
         } else {
-            shapeRenderer.setColor(Color.ORANGE);
+            shapeRenderer.setColor(Color.CYAN); // Mana color
         }
-        shapeRenderer.rect(padding, heatY, barWidth * heatPercent, barHeight);
+        shapeRenderer.rect(entropyBarX, entropyBarY, barWidth * entropyPercent, barHeight);
 
         shapeRenderer.end();
 
@@ -70,16 +72,34 @@ public class HUD {
         // Labels for bars
         font.setColor(Color.WHITE);
         font.draw(batch, "Base Health: " + (int)gameState.getBaseHealth(), padding + 5, screenHeight - padding - 5);
-        font.draw(batch, "Heat Level: " + (int)gameState.getHeatLevel(), padding + 5, heatY + barHeight - 5);
+        font.draw(batch, "Entropy: " + (int)gameState.getHeatLevel(), entropyBarX + 5, entropyBarY + barHeight - 5);
 
-        // Other Stats (Top Right)
-        float rightX = screenWidth - 150;
-        float topY = screenHeight - 20;
+        // Phase Indicator (Top Center)
+        String phaseText = gameState.getCurrentPhase() == GameState.GamePhase.PLANNING ? "PLANNING (PAUSED)" : "SIMULATION (RUNNING)";
+        font.getData().setScale(1.5f);
+        if (gameState.getCurrentPhase() == GameState.GamePhase.PLANNING) font.setColor(Color.YELLOW);
+        else font.setColor(Color.GREEN);
         
-        font.draw(batch, "Score: " + gameState.getScore(), rightX, topY);
-        font.draw(batch, "Wave: " + gameState.getWaveNumber(), rightX, topY - 20);
-        font.draw(batch, "Enemies: " + gameState.getEnemies().size(), rightX, topY - 40);
-        font.draw(batch, "FPS: " + currentFPS, rightX, topY - 60);
+        // Center text
+        com.badlogic.gdx.graphics.g2d.GlyphLayout layout = new com.badlogic.gdx.graphics.g2d.GlyphLayout(font, phaseText);
+        font.draw(batch, phaseText, (screenWidth - layout.width) / 2, screenHeight - 20);
+        font.getData().setScale(1.0f);
+        font.setColor(Color.WHITE);
+
+        // Pattern Toolbar (Bottom Center)
+        String patternText = "Selected Pattern: " + gameState.getSelectedPattern().toString();
+        String controlsText = "[1] Single  [2] Block  [3] Glider  [4] Spinner  |  [SPACE] Toggle Phase  |  [R-Click] Erase";
+        
+        layout.setText(font, patternText);
+        font.draw(batch, patternText, (screenWidth - layout.width) / 2, 60);
+        
+        layout.setText(font, controlsText);
+        font.draw(batch, controlsText, (screenWidth - layout.width) / 2, 30);
+
+        // Other Stats (Top Left, below Health)
+        font.draw(batch, "Wave: " + gameState.getWaveNumber(), padding, screenHeight - 60);
+        font.draw(batch, "Enemies: " + gameState.getEnemies().size(), padding, screenHeight - 80);
+        font.draw(batch, "FPS: " + currentFPS, padding, screenHeight - 100);
 
         batch.end();
 

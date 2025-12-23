@@ -14,6 +14,21 @@ public class GameState {
     private final CollisionSystem collisionSystem;
     private final FlowFieldSystem flowFieldSystem;
     
+    public enum GamePhase {
+        PLANNING,
+        SIMULATION
+    }
+    
+    public enum PatternType {
+        SINGLE,
+        BLOCK,
+        GLIDER,
+        SPINNER
+    }
+
+    private GamePhase currentPhase;
+    private PatternType selectedPattern;
+    
     private final List<EnemyAgent> enemies;
     private Vector2i basePosition;
     private Vector2i spawnPosition;
@@ -36,6 +51,9 @@ public class GameState {
         
         this.collisionSystem = new CollisionSystem(grid);
         this.flowFieldSystem = new FlowFieldSystem(grid, basePosition);
+        
+        this.currentPhase = GamePhase.PLANNING;
+        this.selectedPattern = PatternType.SINGLE;
         
         this.enemies = new ArrayList<>();
         this.baseHealth = maxBaseHealth;
@@ -161,6 +179,122 @@ public class GameState {
      */
     public void incrementWave() {
         waveNumber++;
+    }
+
+    public void setPhase(GamePhase phase) {
+        this.currentPhase = phase;
+    }
+
+    public GamePhase getCurrentPhase() {
+        return currentPhase;
+    }
+
+    public void setSelectedPattern(PatternType pattern) {
+        this.selectedPattern = pattern;
+    }
+
+    public PatternType getSelectedPattern() {
+        return selectedPattern;
+    }
+
+    /**
+     * Apply the selected pattern at the given coordinates.
+     */
+    public boolean applyPattern(int x, int y) {
+        // Calculate cost based on pattern
+        float cost = 0;
+        switch (selectedPattern) {
+            case SINGLE: cost = 2.0f; break;
+            case BLOCK: cost = 8.0f; break;
+            case GLIDER: cost = 10.0f; break;
+            case SPINNER: cost = 6.0f; break;
+        }
+
+        if (heatLevel + cost > maxHeatLevel) {
+            return false;
+        }
+
+        boolean success = false;
+        switch (selectedPattern) {
+            case SINGLE:
+                success = paintSingle(x, y);
+                break;
+            case BLOCK:
+                success = paintBlock(x, y);
+                break;
+            case GLIDER:
+                success = paintGlider(x, y);
+                break;
+            case SPINNER:
+                success = paintSpinner(x, y);
+                break;
+        }
+
+        if (success) {
+            heatLevel += cost;
+            flowFieldSystem.regenerateFlowField();
+        }
+        return success;
+    }
+
+    private boolean paintSingle(int x, int y) {
+        if (!grid.getCell(x, y)) {
+            grid.setCell(x, y, true);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean paintBlock(int x, int y) {
+        // 2x2 block
+        boolean changed = false;
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                if (!grid.getCell(x + i, y + j)) {
+                    grid.setCell(x + i, y + j, true);
+                    changed = true;
+                }
+            }
+        }
+        return changed;
+    }
+
+    private boolean paintGlider(int x, int y) {
+        // Standard glider facing bottom-right
+        // . O .
+        // . . O
+        // O O O
+        int[][] shape = {
+            {0, 1, 0},
+            {0, 0, 1},
+            {1, 1, 1}
+        };
+        return paintShape(x, y, shape);
+    }
+
+    private boolean paintSpinner(int x, int y) {
+        // Blinker (vertical line of 3)
+        int[][] shape = {
+            {0, 1, 0},
+            {0, 1, 0},
+            {0, 1, 0}
+        };
+        return paintShape(x, y, shape);
+    }
+
+    private boolean paintShape(int x, int y, int[][] shape) {
+        boolean changed = false;
+        for (int i = 0; i < shape.length; i++) {
+            for (int j = 0; j < shape[i].length; j++) {
+                if (shape[i][j] == 1) {
+                    if (!grid.getCell(x + j, y + (shape.length - 1 - i))) { // Flip Y for grid coords
+                        grid.setCell(x + j, y + (shape.length - 1 - i), true);
+                        changed = true;
+                    }
+                }
+            }
+        }
+        return changed;
     }
 
     // ===== Getters =====

@@ -244,18 +244,20 @@ public class RenderSystem {
             int gridX = (int) (worldPos.x / CELL_SIZE);
             int gridY = (int) (worldPos.y / CELL_SIZE);
             
-            // Debug mouse position removed
-            
             boolean success = false;
             if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
-                success = gameState.paintCell(gridX, gridY, true);
+                success = gameState.applyPattern(gridX, gridY);
             } else {
-                success = gameState.paintCell(gridX, gridY, false);
+                // Right click is Eraser (Single cell removal, no cost)
+                if (gameState.getGrid().getCell(gridX, gridY)) {
+                    gameState.getGrid().setCell(gridX, gridY, false);
+                    gameState.getFlowFieldSystem().regenerateFlowField();
+                    success = true;
+                }
             }
             
-            if (!success) {
+            if (!success && Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
                 // Show overheat feedback (could be a sound or visual)
-                // Gdx.app.log("Input", "Action failed (Overheated?)");
                 overheatTimer = 0.5f;
             }
         }
@@ -288,10 +290,7 @@ public class RenderSystem {
             cameraX += moveSpeed;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            Gdx.app.log("Input", "Space pressed - Spawning enemy");
-            gameState.spawnEnemy();
-        }
+        // Space is now handled in LifeDefenseGame for Phase Toggling
         
         if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
             zoom *= 0.99f;

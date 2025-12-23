@@ -93,31 +93,48 @@ public class LifeDefenseGame extends ApplicationAdapter {
                 if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
                     currentState = State.PAUSED;
                 }
-
-                // Update game loop
-                if (gameLoop.update(deltaTime)) {
-                    // Simulation tick (100ms)
-                    automataEngine.tick();
-                    gameState.getFlowFieldSystem().regenerateFlowField();
-                }
-
-                // Update game entities every frame
-                gameState.updateEntities(deltaTime);
-
-                // Dynamic Spawning Logic
-                spawnTimer += deltaTime;
-                if (spawnTimer >= currentSpawnInterval && gameState.getEnemies().size() < 500) {
-                    gameState.spawnEnemy();
-                    spawnTimer = 0;
+                
+                // Toggle Phase (Spacebar)
+                if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                    if (gameState.getCurrentPhase() == GameState.GamePhase.PLANNING) {
+                        gameState.setPhase(GameState.GamePhase.SIMULATION);
+                    } else {
+                        gameState.setPhase(GameState.GamePhase.PLANNING);
+                    }
                 }
                 
-                // Increase difficulty over time
-                difficultyTimer += deltaTime;
-                if (difficultyTimer >= 10.0f) { // Every 10 seconds
-                    difficultyTimer = 0;
-                    currentSpawnInterval = Math.max(0.1f, currentSpawnInterval * 0.9f); // 10% faster spawns
-                    gameState.incrementWave(); // You'll need to add this method to GameState
-                    Gdx.app.log("LifeDefense", "Wave " + gameState.getWaveNumber() + "! Spawn Interval: " + currentSpawnInterval);
+                // Pattern Selection
+                if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) gameState.setSelectedPattern(GameState.PatternType.SINGLE);
+                if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) gameState.setSelectedPattern(GameState.PatternType.BLOCK);
+                if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) gameState.setSelectedPattern(GameState.PatternType.GLIDER);
+                if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_4)) gameState.setSelectedPattern(GameState.PatternType.SPINNER);
+
+                // Update game loop
+                if (gameState.getCurrentPhase() == GameState.GamePhase.SIMULATION) {
+                    if (gameLoop.update(deltaTime)) {
+                        // Simulation tick (100ms)
+                        automataEngine.tick();
+                        gameState.getFlowFieldSystem().regenerateFlowField();
+                    }
+
+                    // Update game entities every frame
+                    gameState.updateEntities(deltaTime);
+
+                    // Dynamic Spawning Logic
+                    spawnTimer += deltaTime;
+                    if (spawnTimer >= currentSpawnInterval && gameState.getEnemies().size() < 500) {
+                        gameState.spawnEnemy();
+                        spawnTimer = 0;
+                    }
+                    
+                    // Increase difficulty over time
+                    difficultyTimer += deltaTime;
+                    if (difficultyTimer >= 10.0f) { // Every 10 seconds
+                        difficultyTimer = 0;
+                        currentSpawnInterval = Math.max(0.1f, currentSpawnInterval * 0.9f); // 10% faster spawns
+                        gameState.incrementWave();
+                        Gdx.app.log("LifeDefense", "Wave " + gameState.getWaveNumber() + "! Spawn Interval: " + currentSpawnInterval);
+                    }
                 }
 
                 // Render
@@ -126,8 +143,6 @@ public class LifeDefenseGame extends ApplicationAdapter {
 
                 // Check game over
                 if (gameState.isGameOver()) {
-                    Gdx.app.log("LifeDefense", "GAME OVER!");
-                    Gdx.app.log("LifeDefense", "Final Score: " + gameState.getScore());
                     currentState = State.GAME_OVER;
                 }
                 break;

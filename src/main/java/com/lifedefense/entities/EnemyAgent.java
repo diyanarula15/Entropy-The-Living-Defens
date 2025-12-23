@@ -32,12 +32,8 @@ public class EnemyAgent extends Entity {
     public void update(float deltaTime) {
         if (!active || reachedTarget) return;
 
-        // Seek behavior: move toward target
-        // tmp = target - position
-        tmp.set(targetPosition).sub(position).nor().scl(maxSpeed);
-        velocity.set(tmp);
-
-        // Update position
+        // Velocity is set by GameState (FlowFieldSystem)
+        // Just update position
         // position += velocity * deltaTime
         tmp.set(velocity).scl(deltaTime);
         position.add(tmp);
